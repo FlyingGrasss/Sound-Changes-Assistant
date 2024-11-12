@@ -1,0 +1,265 @@
+from flask import Flask, render_template, request, jsonify
+from zemberek import TurkishMorphology
+
+app = Flask(__name__)
+
+morphology = TurkishMorphology.create_with_defaults()
+
+detected_sound_changes = []
+
+sesli_harfler = ["a", "e", "ı", "i", "o", "ö", "u", "ü"]
+sessiz_harfler = ["z", "y", "v", "t", "ş", "s", "r", "p", "n", "m", "l", "k", "h", "j", "ğ", "g", "f", "d", "ç", "c", "b"]
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/process', methods=['POST'])
+def process():
+    global detected_sound_changes  
+    
+    detected_sound_changes.clear()
+    
+    user_input = request.form.get('user_input')
+    results = analyze_word(user_input)
+
+    display_results = [
+        f"Kök: {result['root']}, Asıl kök: {result['normalized_root']}, Ekler: {result['suffixes']}, "
+        f"Ses Olayları: {detect_ses_olaylari(result)}"
+        for result in results
+    ]
+    
+    return jsonify(result=display_results if display_results else "No result found")
+
+def analyze_word(word):
+    analysis = morphology.analyze(word)
+    results = []
+
+    if analysis.analysis_results:
+        first_result = analysis.analysis_results[0]
+        root = first_result.get_stem()
+        suffixes = first_result.get_ending()
+        normalized_root = str(first_result).split(":")[0][1:]
+
+        results.append({
+            'root': root,
+            'normalized_root': normalized_root,
+            'suffixes': suffixes,
+            "analysis": analysis,
+        })
+    return results
+
+def detect_ses_olaylari(result):
+    global detected_sound_changes  
+
+    root = result['root']
+    suffixed_word = result['suffixes']
+    normalized_root = result['normalized_root']
+    input_word = request.form.get('user_input')
+    analysis = result["analysis"]
+
+
+    checks = [
+        check_unsuz_yumusamasi,
+        check_unlu_daralmasi,
+        check_unlu_dusmesi,
+        check_kaynastirma_harfleri,
+        check_unlu_turemesi,
+        check_unsuz_sertlesmesi,
+        check_unsuz_dusmesi,
+        check_unsuz_turemesi
+    ]
+
+    for check in checks:
+        try:
+            result = check(root, suffixed_word, normalized_root, input_word, analysis)
+            if result:
+                detected_sound_changes.append(result)
+        except Exception as e:
+            print(f"Error in {check.__name__}: {e}")
+
+    return detected_sound_changes
+
+
+
+def check_unsuz_turemesi(root, suffixed_word, normalized_root, input_word, analysis_results):   
+    for i in range(1, len(root)):
+        if root[i-1] == root[i] and root[i] in sessiz_harfler:
+            return "Ünsüz Türemesi"
+        
+
+    return None
+
+
+def check_unsuz_yumusamasi(root, suffixed_word, normalized_root, input_word, analysis_results):
+    hard_to_soft = {'b': 'p', 'c': 'ç', 'd': 't', 'ğ': 'k'}
+    hard_to_soft_real = {'p': 'b', 'ç': 'c', 't': 'd', 'k': 'ğ'}
+    
+    if root[-1] in hard_to_soft and input_word.startswith(root[:-1] + hard_to_soft_real[hard_to_soft[root[-1]]]):
+        
+        return "Ünsüz Yumuşaması"
+    return None
+
+def check_unlu_daralmasi(root, suffixed_word, normalized_root, input_word, analysis_results):
+    if len(normalized_root) < len(root):
+        return None
+    if len(root) == len(normalized_root) or len(root)+1 == len(normalized_root):
+        return None
+    elif normalized_root[len(root)] not in 'ae' and normalized_root[len(root)+1] not in 'ae':
+        return None
+    if (normalized_root == "demek" or normalized_root == "yemek") and (input_word.startswith("di") or input_word.startswith("yi")):
+        
+        return "Ünlü Daralması"
+    narrowing_rules = {
+        'a': {'ı', 'i', 'u', 'ü'},
+        'e': {'ı', 'i', 'u', 'ü'}
+    }
+
+    if suffixed_word[:2] in {"mı", "mi", "mu", "mü"}:
+        if suffixed_word[1] in narrowing_rules[normalized_root[len(root)+1]]:
+            
+            return "Ünlü Daralması"
+    if normalized_root[len(root)] in narrowing_rules:
+        narrowed_vowel = suffixed_word[0] if suffixed_word[0] in narrowing_rules[normalized_root[len(root)]] else None
+    else:
+        return None
+    if narrowed_vowel:
+        
+        return "Ünlü Daralması"
+    return None
+
+
+
+def check_unlu_dusmesi(root, suffixed_word, normalized_root, input_word, analysis_results):
+    if "Ünsüz Yumuşaması" in detected_sound_changes or "Ünsüz Türemesi" in detected_sound_changes:
+        return None
+    if len(normalized_root) < len(root):
+        return None
+    known_istisna = [
+        "kahvaltı", "niçin", "nasıl", "sütlâç", "güllâç", 
+        "cumartesi", "pazartesi", "oynamak", "ilerlemek", 
+        "sararmak", "koklamak", "yumurtlamak",
+        "sızlamak", "buyruk", "kavşak", "kıvrım", "uyku", 
+        "çevre", "yalnız", "kaynana"
+    ]
+    known_suffix = ["yle", "le", "yla", "la", "sa", "se", "ti", "di", "yse", "ysa", "tı", "dı", "miş", "mış", "dü", "du", "dı"]
+    for i in range(len(analysis_results.analysis_results)):
+        first_result_ = analysis_results.analysis_results[i]
+        root_ = first_result_.get_stem()
+        suffixes_ = first_result_.get_ending()
+        normalized_root_ = str(first_result_).split(":")[0][1:]
+        for i in range(len(root_)):
+            if root_[i] in sessiz_harfler and normalized_root_[i] in sesli_harfler:
+                
+                return "Ünlü Düşmesi"
+    if normalized_root != "etmek" and normalized_root != "et" and normalized_root.endswith("etmek"):
+        
+        return "Ünlü Düşmesi"
+    if normalized_root != "olmak" and normalized_root != "ol" and normalized_root.endswith("olmak"):
+        
+        return "Ünlü Düşmesi"
+    if normalized_root in known_istisna:
+        
+        return "Ünlü Düşmesi"    
+    for i in range(len(analysis_results.analysis_results)):
+        if (input_word[-2:] in known_suffix or input_word[-3:] in known_suffix) and not any(":Verb" in str(result) for result in analysis_results):
+            
+            return "Ünlü Düşmesi"
+    
+    
+    return None
+
+
+
+
+
+# maybe implement ş and s, and also it fails on some of them like ; Kök: öyle, Asıl kök: öyle, Ekler: ydi, Ses Olayları: ['Ünlü Düşmesi']
+def check_kaynastirma_harfleri(root, suffixes, normalized_root, word, analysis_results):
+    vowels = "aeıioöuü"
+    buffer_y_suffixes = ["ya", "yı", "ye", "yu", "yi", "yip", "yince"]
+    buffer_n_suffixes = ["nda", "nde", "nı", "ni", "nun", "nin", "nın", "nün"]
+    known_suffixes = ["şer", "şar", "sı", "si", "sız", "se", "ydi", "ye"]
+
+    suffix_string = ''.join(suffixes)
+    
+    for suffix in known_suffixes:
+        if word.endswith(suffix):
+            return "Kaynaştırma Ünsüzü"
+    
+    if root[-1] in vowels and any(suffix_string.startswith(suffix) for suffix in buffer_y_suffixes):
+        return "Kaynaştırma Harfi"
+    
+    if any(suffix_string.startswith(suffix) for suffix in buffer_n_suffixes):
+        return "Kaynaştırma Harfi"
+
+    return None
+
+
+
+
+
+def check_unsuz_dusmesi(root, suffixed_word, normalized_root, input_word, analysis_results):
+    consonant_drop_suffixes = ["cik", "cek", "cık", "cak", "cuk", "cük", "çik", "çık", "çek", "çak"]
+    for suffix in consonant_drop_suffixes:
+        if root.endswith(suffix):
+            possible_root = root[:-len(suffix)] + "k"
+            
+            if is_actual_word(possible_root):
+                return "Ünsüz Düşmesi"
+
+    return False  
+
+
+def check_unlu_turemesi(root, suffixed_word, normalized_root, input_word, analysis_results):
+    if "Ünsüz Düşmesi" in detected_sound_changes:
+        return None
+    diminutive_suffixes = ["cik", "cık", "cuk", "cük"]
+    
+    for suffix in diminutive_suffixes:
+        if input_word.endswith(suffix) and input_word.startswith(root):
+            insertion_point = len(input_word) - len(suffix)
+            if root[-1] not in "aeıioöuü" and input_word[insertion_point - 1] in "aeıioöuü":
+                
+                return "Ünlü Türemesi"
+
+    intensifier_prefixes = ["sapa", "güpe", "çapa", "çepe", "apa", "düpe"]
+    
+    is_verb = any("Verb" in str(result) for result in analysis_results)
+    if is_verb:
+        for suffix in ["dur", "edur", "adur"]:  
+            if input_word.endswith(suffix):
+                base_word = input_word[:-len(suffix)]
+                if base_word == root:
+                    
+                    return "Ünlü Türemesi"
+
+    for prefix in intensifier_prefixes:
+        if input_word.startswith(prefix):
+            
+            return "Ünlü Türemesi"
+    
+    return None
+
+
+def check_unsuz_sertlesmesi(root, suffixed_word, normalized_root, input_word, analysis_results):
+    hardening_consonants = "çtk"
+    hard_consonants = "pçtkfşsh"
+    last_letter = input_word[0]
+    for letter in input_word[1:]:
+        if last_letter in hard_consonants and letter in hardening_consonants:
+            
+            return "Ünsüz Sertleşmesi"
+        last_letter = letter
+    
+    return None
+
+
+
+def is_actual_word(word):
+    analysis = morphology.analyze(word)
+    if analysis.analysis_results and not any(":Verb" in str(result) for result in analysis.analysis_results):
+        return True
+
+
+if __name__ == '__main__':
+    app.run(debug=True)

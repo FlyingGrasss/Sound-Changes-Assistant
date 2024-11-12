@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ses Olayları</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+    <h1>Ses Olayı Asistanı</h1>
+    <form id="inputForm">
+        <label for="input">Kelime Girin:</label>
+        <input type="text" id="input" name="user_input" required>
+        <button type="submit">Gönder</button>
+    </form>
+
+    <div id="resultDiv" style="display: none;">
+        <h2>Sonuç:</h2>
+        <p id="resultText"></p>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
