@@ -91,3 +91,58 @@ button[type="submit"]:hover {
 #resultText {
   color: #374151; /* Dark grey for result text */
 }
+
+/* Individual Result Item Styling */
+.result-item {
+  border-bottom: 1px solid #ddd;
+  padding: 10px 0;
+  margin-bottom: 10px;
+}
+/* Styles for displaying results in school-like format */
+
+/* Suffix display styling */
+.suffix-display {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #1E3A8A; /* Dark blue for display line */
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+/* Table-like structure for suffixes and their meanings */
+.suffix-table {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.suffix-row, .meaning-row {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 400px;
+}
+
+.suffix-cell, .meaning-cell {
+  flex: 1;
+  text-align: center;
+  padding: 5px;
+}
+
+.suffix-cell {
+  font-weight: bold;
+}
+
+.meaning-cell {
+  color: #555; /* Slightly darker grey for meaning text */
+  font-size: 0.9em;
+}
+
+/* Styling for sound events */
+.sound-events {
+  text-align: center;
+  color: #374151; /* Dark grey for sound events text */
+  font-style: italic;
+  margin-top: 10px;
+}

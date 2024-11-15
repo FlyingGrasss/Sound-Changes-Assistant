@@ -10,6 +10,7 @@ detected_sound_changes = []
 
 sesli_harfler = ["a", "e", "ı", "i", "o", "ö", "u", "ü"]
 sessiz_harfler = ["z", "y", "v", "t", "ş", "s", "r", "p", "n", "m", "l", "k", "h", "j", "ğ", "g", "f", "d", "ç", "c", "b"]
+fiil_cekim_ekleri = ["dı","di","du","dü", "tı","ti","tu","tü", "mış","miş","muş","müş", "yor", "acak","ecek", "r", "er","ar","ır","ir","ur","ür","se","sa","a"]
 
 @app.route('/')
 def index():
@@ -25,12 +26,20 @@ def process():
     results = analyze_word(user_input)
 
     display_results = [
-        f"Kök: {result['root']}, Asıl kök: {result['normalized_root']}, Ekler: {result['suffixes']}, "
-        f"Ses Olayları: {detect_ses_olaylari(result)}"
-        for result in results
+      {
+          "root": result["root"],
+          "normalized_root": result["normalized_root"],
+          "suffixes": result["suffixes"],
+          "analysis": str(result["analysis"]),
+          "sound_events": detect_ses_olaylari(result),
+          "suffix_kinds": result["find_suffix_kinds"][0],
+          "suffix_display": result["find_suffix_kinds"][1][::-1]
+      }
+      for result in results
     ]
     
     return jsonify(result=display_results if display_results else "No result found")
+
 
 def analyze_word(word):
     analysis = morphology.analyze(word)
@@ -47,6 +56,7 @@ def analyze_word(word):
             'normalized_root': normalized_root,
             'suffixes': suffixes,
             "analysis": analysis,
+            "find_suffix_kinds": find_suffix_kinds(root,normalized_root,suffixes,word, analysis)
         })
     return results
 
@@ -166,15 +176,15 @@ def check_unlu_dusmesi(root, suffixed_word, normalized_root, input_word, analysi
         if (input_word[-2:] in known_suffix or input_word[-3:] in known_suffix) and not any(":Verb" in str(result) for result in analysis_results):
             
             return "Ünlü Düşmesi"
-    
-    
+        
+            
     return None
 
 
 
 
 
-# maybe implement ş and s, and also it fails on some of them like ; Kök: öyle, Asıl kök: öyle, Ekler: ydi, Ses Olayları: ['Ünlü Düşmesi']
+# this function needs fix!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! maybe implement ş and s, and also it fails on some of them like ; Kök: öyle, Asıl kök: öyle, Ekler: ydi, Ses Olayları: ['Ünlü Düşmesi']
 def check_kaynastirma_harfleri(root, suffixes, normalized_root, word, analysis_results):
     vowels = "aeıioöuü"
     buffer_y_suffixes = ["ya", "yı", "ye", "yu", "yi", "yip", "yince"]
@@ -254,12 +264,77 @@ def check_unsuz_sertlesmesi(root, suffixed_word, normalized_root, input_word, an
     
     return None
 
+def check_unlu_degisimi(root, suffixed_word, normalized_root, input_word, analysis_results):
+    if input_word == "sana" or input_word == "bana":
+        return "Ünlü Değişimi"
 
 
 def is_actual_word(word):
     analysis = morphology.analyze(word)
     if analysis.analysis_results and not any(":Verb" in str(result) for result in analysis.analysis_results):
         return True
+
+
+def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis_results):
+    suffix_kinds = []
+    result_str = str(analysis_results.analysis_results[0])
+    answer = []
+    
+    suffix_translation = {
+    "Verb": "Fiil",
+    "Noun": "İsim",
+    "Adj": "Sıfat",
+    "Adv": "Zarf",
+    "Neg": "Negatif Eki",
+    "Past": "Bilinen Geçmiş Zaman Eki",
+    "Fut": "Gelecek Zaman Eki",
+    "Prog": "Şimdiki Zaman Eki",
+    "Cond": "Koşul Eki",
+    "A1sg": "Birinci Tekil Şahıs (Ben)",
+    "A2sg": "İkinci Tekil Şahıs (Sen)",
+    "Acc": "Belirtme Hal Eki",
+    "Dat": "Yönelme Hal Eki",
+    "A3pl": "Üçüncü Çoğul Kişi (Onlar)",
+    "A1pl": "Birinci Çoğul Kişi (Biz)",
+    "A2pl": "İkinci Çoğul Kişi (Siz)",
+    "Opt": "Dilek Kipi",
+    "Aor": "Geniş Zaman Eki",
+    "Narr": "Öğrenilen Geçmiş Zaman Eki",
+    "Pass": "Edilgen Eki"
+    }
+
+    suffix_part = result_str.split("]")[1][1:]
+    suffixes = "".join(suffix_part)
+    concurrent_word = ""
+    for index, i in enumerate(suffixes):
+        concurrent_word += i
+        if i == "+" or i == ":":
+            concurrent_word = ""
+            continue
+        if concurrent_word in suffix_translation:
+            suffix_kinds.append(concurrent_word)
+            
+    translated_suffix_kinds = [suffix_translation[i] for i in suffix_kinds]
+    answer.append(translated_suffix_kinds)
+    get_letter = False
+    concurrent_word = ""
+    display_word = ""
+    for i in suffixes[::-1]:
+        if get_letter:
+            concurrent_word += i
+        if i == "+":
+            get_letter = False
+            if concurrent_word:
+                display_word += concurrent_word
+        if i == "|":
+            get_letter = False
+            if concurrent_word:
+                display_word += concurrent_word
+        if i == ":":
+            get_letter = True
+    answer.append(concurrent_word)
+    return answer
+    
 
 
 if __name__ == "__main__":
