@@ -27,7 +27,7 @@ document.getElementById('inputForm').addEventListener('submit', function (e) {
                 // First Row: Display `suffix_display` as a single string without spaces
                 displayArea.innerHTML += `
                     <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 10px;">
-                        ${suffixParts.join('-')}
+                        ${suffixParts.join('-') || item.root}
                     </div>
                 `;
 

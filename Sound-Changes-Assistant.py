@@ -289,7 +289,7 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
     "Past": "Bilinen Geçmiş Zaman Eki",
     "Fut": "Gelecek Zaman Eki",
     "Prog": "Şimdiki Zaman Eki",
-    "Cond": "Koşul Eki",
+    "Cond": "Koşul-Şart Eki",
     "A1sg": "Birinci Tekil Şahıs (Ben)",
     "A2sg": "İkinci Tekil Şahıs (Sen)",
     "Acc": "Belirtme Hal Eki",
@@ -297,10 +297,13 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
     "A3pl": "Üçüncü Çoğul Kişi (Onlar)",
     "A1pl": "Birinci Çoğul Kişi (Biz)",
     "A2pl": "İkinci Çoğul Kişi (Siz)",
-    "Opt": "Dilek Kipi",
+    "Opt": "İstek Kip Eki",
     "Aor": "Geniş Zaman Eki",
     "Narr": "Öğrenilen Geçmiş Zaman Eki",
-    "Pass": "Edilgen Eki"
+    "Pass": "Edilgen Eki",
+    "Neces": "Gereklilik Eki",
+    "Imp": "Emir Kipi Eki",
+    "Desr": "İstek Kip Eki"
     }
 
     suffix_part = result_str.split("]")[1][1:]
