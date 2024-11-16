@@ -17,9 +17,14 @@ document.getElementById('inputForm').addEventListener('submit', function (e) {
                 // Split suffix_display by "+" or "|" to get each part
                 if (item.suffix_display.includes("+")) { 
                     suffixParts = item.suffix_display.split('+');
-                    if (suffixParts[0].includes("|")) { 
-                        suffixParts = suffixParts[0].split("|").concat(suffixParts.slice(1));
+                    for (let i = 0; i < suffixParts.length; i++) {
+                        if (suffixParts[i].includes("|")) {
+                        
+                            const suffixPartSplit = suffixParts[i].split("|");
+                            suffixParts = [...suffixParts.slice(0, i), ...suffixPartSplit];
+                        }
                     }
+                    
                 } else if (item.suffix_display.includes("|")) { 
                     suffixParts = item.suffix_display.split('|');
                 }

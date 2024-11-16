@@ -303,7 +303,17 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
     "Pass": "Edilgen Eki",
     "Neces": "Gereklilik Eki",
     "Imp": "Emir Kipi Eki",
-    "Desr": "İstek Kip Eki"
+    "Desr": "İstek Kip Eki",
+    "While": "Zarf-Fiil Eki",
+    "AfterDoingSo": "Zarf-Fiil Eki",
+    "ByDoingSo": "Zarf-Fiil Eki",
+    "WithoutHavingDoneSo": "Zarf-Fiil Eki",
+    "AsLongAs": "Zarf-Fiil Eki",
+    "When": "Zarf-Fiil Eki",
+    "SinceDoingSo": "Zarf-Fiil Eki",
+    "Adamantly": "Zarf-Fiil Eki",
+    "AsIf": "Zarf-Fiil Eki",
+    "Postp": "Edat"
     }
 
     suffix_part = result_str.split("]")[1][1:]
