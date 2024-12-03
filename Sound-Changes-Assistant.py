@@ -1,10 +1,13 @@
 from flask import Flask, render_template, request, jsonify
+from zemberek import TurkishSpellChecker
 from zemberek import TurkishMorphology
 import os
 
 app = Flask(__name__)
 
 morphology = TurkishMorphology.create_with_defaults()
+spell_checker = TurkishSpellChecker(morphology)
+
 
 detected_sound_changes = []
 
@@ -15,6 +18,15 @@ fiil_cekim_ekleri = ["dı","di","du","dü", "tı","ti","tu","tü", "mış","miş
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/suggest', methods=['GET'])
+def suggest():
+    query = request.args.get('q', '').lower()  # Get query from the request and convert to lowercase
+    if len(query) < 3:  # Only provide suggestions if the query is 3+ characters long
+        return jsonify([])  # Return an empty list if the query is too short
+    
+    suggestions = get_suggestions(query)
+    return jsonify(suggestions)
 
 @app.route('/process', methods=['POST'])
 def process():
@@ -59,6 +71,10 @@ def analyze_word(word):
             "find_suffix_kinds": find_suffix_kinds(root,normalized_root,suffixes,word, analysis)
         })
     return results
+
+def get_suggestions(query):
+    suggestions = spell_checker.suggest_for_word(query)
+    return [suggestion for suggestion in suggestions]
 
 def detect_ses_olaylari(result):
     global detected_sound_changes  
@@ -292,8 +308,8 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
     "Cond": "Koşul-Şart Eki",
     "A1sg": "Birinci Tekil Şahıs (Ben)",
     "A2sg": "İkinci Tekil Şahıs (Sen)",
-    "Acc": "Belirtme Hal Eki",
-    "Dat": "Yönelme Hal Eki",
+    "Acc": "Belirtme Hâl Eki",
+    "Dat": "Yönelme Hâl Eki",
     "A3pl": "Üçüncü Çoğul Kişi (Onlar)",
     "A1pl": "Birinci Çoğul Kişi (Biz)",
     "A2pl": "İkinci Çoğul Kişi (Siz)",
@@ -313,7 +329,16 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
     "SinceDoingSo": "Zarf-Fiil Eki",
     "Adamantly": "Zarf-Fiil Eki",
     "AsIf": "Zarf-Fiil Eki",
-    "Postp": "Edat"
+    "Postp": "Edat",
+    "P1sg": "Birinci Tekil Şahıs İyelik Eki",
+    "Agt": "Etken Kişi Eki",
+    "P2sg": "İkinci Tekil Şahıs İyelik Eki",
+    "Gen": "İyelik Eki / Tamlayan Eki",
+    "Equ": "Eşitlik Hâl Eki",
+    "P3sg": "Üçüncü Tekil Şahıs İyelik Eki",
+    "P1pl": "Birinci Çoğul Şahıs İyelik Eki",
+    "P2pl": "İkinci Çoğul Şahıs İyelik Eki",
+    "P3pl": "Üçüncü Çoğul Şahıs İyelik Eki"
     }
 
     suffix_part = result_str.split("]")[1][1:]

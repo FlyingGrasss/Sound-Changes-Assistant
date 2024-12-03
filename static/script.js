@@ -1,3 +1,4 @@
+// Handle form submission for the analysis
 document.getElementById('inputForm').addEventListener('submit', function (e) {
     e.preventDefault();
     const formData = new FormData(this);
@@ -19,12 +20,10 @@ document.getElementById('inputForm').addEventListener('submit', function (e) {
                     suffixParts = item.suffix_display.split('+');
                     for (let i = 0; i < suffixParts.length; i++) {
                         if (suffixParts[i].includes("|")) {
-                        
                             const suffixPartSplit = suffixParts[i].split("|");
                             suffixParts = [...suffixParts.slice(0, i), ...suffixPartSplit];
                         }
                     }
-                    
                 } else if (item.suffix_display.includes("|")) { 
                     suffixParts = item.suffix_display.split('|');
                 }
@@ -73,3 +72,55 @@ document.getElementById('inputForm').addEventListener('submit', function (e) {
         })
         .catch(error => console.error('Error:', error));
 });
+
+// Handle live suggestions as user types
+const input = document.querySelector("#input");
+const suggestionBox = document.querySelector("#suggestions");
+const button = document.querySelector("#button");
+input.addEventListener("input", async (e) => {
+    const query = e.target.value;
+
+    if (query) {
+        // Fetch suggestions dynamically from the backend
+        const response = await fetch(`/suggest?q=${query}`);
+        const suggestions = await response.json();
+        updateSuggestions(suggestions);
+    } else {
+        // Clear suggestions if the input is empty
+        clearSuggestions();
+    }
+});
+button.addEventListener("click", () => {
+    clearSuggestions();
+});
+function updateSuggestions(suggestions) {
+    // If there are suggestions, show the suggestion box
+    if (suggestions.length > 0) {
+        suggestionBox.style.display = "block";
+        suggestionBox.innerHTML = suggestions
+            .map(suggestion => `<div>${suggestion}</div>`)
+            .join("");
+        addSuggestionListeners();
+    } else {
+        clearSuggestions();
+    }
+}
+
+function clearSuggestions() {
+    // Hide the suggestion box and clear its content
+    suggestionBox.style.display = "none";
+    suggestionBox.innerHTML = "";
+}
+
+function addSuggestionListeners() {
+    const items = document.querySelectorAll("#suggestions div");
+    items.forEach(item => {
+        item.addEventListener("click", () => {
+            input.value = item.textContent;
+            clearSuggestions();
+        });
+    });
+}
+
+
+
