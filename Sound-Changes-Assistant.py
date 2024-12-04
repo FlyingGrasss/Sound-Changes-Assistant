@@ -377,4 +377,4 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=False)

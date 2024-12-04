@@ -1,5 +1,3 @@
-/* styles.css */
-
 /* Basic Reset */
 * {
   margin: 0;
@@ -18,19 +16,21 @@ body {
   justify-content: center;
   min-height: 100vh;
   margin: 0;
+  padding: 20px; /* Ensure proper spacing on mobile */
 }
 
 /* Header */
 h1 {
   color: #1E3A8A; /* Dark blue for header */
   margin-bottom: 20px;
+  text-align: center; /* Center-align header */
 }
 
 /* Form Container */
 form {
   display: flex;
   flex-direction: column;
-  align-items: start;
+  align-items: stretch;
   background-color: #fff;
   padding: 20px;
   border-radius: 8px;
@@ -38,6 +38,7 @@ form {
   width: 100%;
   max-width: 400px;
   margin-bottom: 20px;
+  position: relative; /* Important for positioning the suggestion box */
 }
 
 /* Form Label */
@@ -54,6 +55,7 @@ input[type="text"] {
   border: 1px solid #ddd;
   width: 100%;
   margin-bottom: 12px;
+  font-size: 16px; /* Consistent font size */
 }
 
 /* Submit Button */
@@ -72,6 +74,35 @@ button[type="submit"]:hover {
   background-color: #2563EB; /* Darker blue on hover */
 }
 
+/* Suggestion Box Styling */
+.suggestion-box {
+  position: absolute;
+  top: 100%; /* Position directly below the input field */
+  left: 0;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none; /* Hidden by default */
+}
+
+.suggestion-box div {
+  padding: 8px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.suggestion-box div:hover {
+  background: #f0f0f0;
+}
+
+.suggestion-box div:last-child {
+  border-bottom: none;
+}
+
 /* Result Section */
 #resultDiv {
   text-align: center;
@@ -81,6 +112,7 @@ button[type="submit"]:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   max-width: 400px;
   width: 100%;
+  display: none; /* Initially hidden */
 }
 
 #resultDiv h2 {
@@ -98,7 +130,6 @@ button[type="submit"]:hover {
   padding: 10px 0;
   margin-bottom: 10px;
 }
-/* Styles for displaying results in school-like format */
 
 /* Suffix display styling */
 .suffix-display {
@@ -145,4 +176,47 @@ button[type="submit"]:hover {
   color: #374151; /* Dark grey for sound events text */
   font-style: italic;
   margin-top: 10px;
+}
+/* Form Container */
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 20px;
+  position: relative; /* Added this */
+}
+
+/* Suggestion Box Styling */
+.suggestion-box {
+  position: absolute;
+  top: 100%; /* Position directly below the input */
+  left: 0;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none; /* Hidden by default */
+}
+
+.suggestion-box div {
+  padding: 8px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.suggestion-box div:hover {
+  background: #f0f0f0;
+}
+
+.suggestion-box div:last-child {
+  border-bottom: none;
 }
