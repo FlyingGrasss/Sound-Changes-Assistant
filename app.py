@@ -31,45 +31,38 @@ def suggest():
 @app.route('/process', methods=['POST'])
 def process():
     global detected_sound_changes  
-    
-    detected_sound_changes.clear()
-    
     user_input = request.form.get('user_input')
-    results = analyze_word(user_input)
-
-    display_results = [
-      {
-          "root": result["root"],
-          "normalized_root": result["normalized_root"],
-          "suffixes": result["suffixes"],
-          "analysis": str(result["analysis"]),
-          "sound_events": detect_ses_olaylari(result),
-          "suffix_kinds": result["find_suffix_kinds"][0],
-          "suffix_display": result["find_suffix_kinds"][1][::-1]
-      }
-      for result in results
-    ]
-    
-    return jsonify(result=display_results if display_results else "No result found")
-
+    all_results = analyze_word(user_input)
+    display_results = []
+    for result in all_results:
+        detected_sound_changes.clear()
+        display_results.append({
+            "root": result["root"],
+            "normalized_root": result["normalized_root"],
+            "suffixes": result["suffixes"],
+            "analysis": result["raw_analysis"],
+            "sound_events": detect_ses_olaylari(result),
+            "suffix_kinds": result["find_suffix_kinds"][0],
+            "suffix_display": result["find_suffix_kinds"][1][::-1]
+        })
+    return jsonify(results=display_results if display_results else "No results found")
 
 def analyze_word(word):
     analysis = morphology.analyze(word)
     results = []
-
     if analysis.analysis_results:
-        first_result = analysis.analysis_results[0]
-        root = first_result.get_stem()
-        suffixes = first_result.get_ending()
-        normalized_root = str(first_result).split(":")[0][1:]
-
-        results.append({
-            'root': root,
-            'normalized_root': normalized_root,
-            'suffixes': suffixes,
-            "analysis": analysis,
-            "find_suffix_kinds": find_suffix_kinds(root,normalized_root,suffixes,word, analysis)
-        })
+        for result in analysis.analysis_results:
+            root = result.get_stem()
+            suffixes = result.get_ending()
+            normalized_root = str(result).split(":")[0][1:]
+            results.append({
+                'root': root,
+                'normalized_root': normalized_root,
+                'suffixes': suffixes,
+                "analysis": analysis,
+                "find_suffix_kinds": find_suffix_kinds(root, normalized_root, suffixes, word, result),
+                "raw_analysis": str(result)
+            })
     return results
 
 def get_suggestions(query):
@@ -293,55 +286,123 @@ def is_actual_word(word):
 
 def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis_results):
     suffix_kinds = []
-    result_str = str(analysis_results.analysis_results[0])
     answer = []
-    
+    current_result_str = str(analysis_results)
     suffix_translation = {
-    "Verb": "Fiil",
-    "Noun": "İsim",
-    "Adj": "Sıfat",
-    "Adv": "Zarf",
-    "Neg": "Negatif Eki",
-    "Past": "Bilinen Geçmiş Zaman Eki",
-    "Fut": "Gelecek Zaman Eki",
-    "Prog": "Şimdiki Zaman Eki",
-    "Cond": "Koşul-Şart Eki",
-    "A1sg": "Birinci Tekil Şahıs (Ben)",
-    "A2sg": "İkinci Tekil Şahıs (Sen)",
-    "Acc": "Belirtme Hâl Eki",
-    "Dat": "Yönelme Hâl Eki",
-    "A3pl": "Üçüncü Çoğul Kişi (Onlar)",
-    "A1pl": "Birinci Çoğul Kişi (Biz)",
-    "A2pl": "İkinci Çoğul Kişi (Siz)",
-    "Opt": "İstek Kip Eki",
-    "Aor": "Geniş Zaman Eki",
-    "Narr": "Öğrenilen Geçmiş Zaman Eki",
-    "Pass": "Edilgen Eki",
-    "Neces": "Gereklilik Eki",
-    "Imp": "Emir Kipi Eki",
-    "Desr": "İstek Kip Eki",
-    "While": "Zarf-Fiil Eki",
-    "AfterDoingSo": "Zarf-Fiil Eki",
-    "ByDoingSo": "Zarf-Fiil Eki",
-    "WithoutHavingDoneSo": "Zarf-Fiil Eki",
-    "AsLongAs": "Zarf-Fiil Eki",
-    "When": "Zarf-Fiil Eki",
-    "SinceDoingSo": "Zarf-Fiil Eki",
-    "Adamantly": "Zarf-Fiil Eki",
-    "AsIf": "Zarf-Fiil Eki",
-    "Postp": "Edat",
-    "P1sg": "Birinci Tekil Şahıs İyelik Eki",
-    "Agt": "Etken Kişi Eki",
-    "P2sg": "İkinci Tekil Şahıs İyelik Eki",
-    "Gen": "İyelik Eki / Tamlayan Eki",
-    "Equ": "Eşitlik Hâl Eki",
-    "P3sg": "Üçüncü Tekil Şahıs İyelik Eki",
-    "P1pl": "Birinci Çoğul Şahıs İyelik Eki",
-    "P2pl": "İkinci Çoğul Şahıs İyelik Eki",
-    "P3pl": "Üçüncü Çoğul Şahıs İyelik Eki"
+        # === Your Original Entries (Preserved) ===
+        "Verb": "Fiil",
+        "Noun": "İsim",
+        "Adj": "Sıfat",
+        "Adv": "Zarf",
+        "Neg": "Negatif Eki",
+        "Past": "Bilinen Geçmiş Zaman Eki",
+        "Fut": "Gelecek Zaman Eki",
+        "Prog": "Şimdiki Zaman Eki",
+        "Cond": "Koşul-Şart Eki",
+        "A1sg": "Birinci Tekil Şahıs (Ben)",
+        "A2sg": "İkinci Tekil Şahıs (Sen)",
+        "Acc": "Belirtme Hâl Eki",
+        "Dat": "Yönelme Hâl Eki",
+        "A3pl": "Üçüncü Çoğul Kişi (Onlar)",
+        "A1pl": "Birinci Çoğul Kişi (Biz)",
+        "A2pl": "İkinci Çoğul Kişi (Siz)",
+        "Opt": "İstek Kip Eki",
+        "Aor": "Geniş Zaman Eki",
+        "Narr": "Öğrenilen Geçmiş Zaman Eki",
+        "Pass": "Edilgen Eki",
+        "Neces": "Gereklilik Eki",
+        "Imp": "Emir Kipi Eki",
+        "Desr": "İstek Kip Eki",
+        "While": "Zarf-Fiil Eki",
+        "AfterDoingSo": "Zarf-Fiil Eki",
+        "ByDoingSo": "Zarf-Fiil Eki",
+        "WithoutHavingDoneSo": "Zarf-Fiil Eki",
+        "AsLongAs": "Zarf-Fiil Eki",
+        "When": "Zarf-Fiil Eki",
+        "SinceDoingSo": "Zarf-Fiil Eki",
+        "Adamantly": "Zarf-Fiil Eki",
+        "AsIf": "Zarf-Fiil Eki",
+        "Postp": "Edat",
+        "P1sg": "Birinci Tekil Şahıs İyelik Eki",
+        "Agt": "Etken Kişi Eki",
+        "P2sg": "İkinci Tekil Şahıs İyelik Eki",
+        "Gen": "İyelik Eki / Tamlayan Eki",
+        "Equ": "Eşitlik Hâl Eki",
+        "P3sg": "Üçüncü Tekil Şahıs İyelik Eki",
+        "P1pl": "Birinci Çoğul Şahıs İyelik Eki",
+        "P2pl": "İkinci Çoğul Şahıs İyelik Eki",
+        "P3pl": "Üçüncü Çoğul Şahıs İyelik Eki",
+        "Loc": "Bulunma hâli (-da/-de)",
+        "Without": "Yoksunluk eki (-sız/-siz)",
+
+        # === New Additions (Expanded Coverage) ===
+        # POS Tags
+        "Pron": "Zamir",
+        "Num": "Sayı",
+        "Det": "Belirteç",
+        "Interj": "Ünlem",
+        "Conj": "Bağlaç",
+        "Ques": "Soru Eki (mı/mi/mu/mü)",
+        "Dup": "İkileme",
+        "Prop": "Özel İsim",
+        "Abbr": "Kısaltma",
+        
+        # Case Markers
+        "Nom": "Yalın hâl",
+        "Abl": "Ayrılma hâli (-dan/-den)",
+        "Ins": "Vasıta hâli (-la/-le)",
+        
+        # Person/Number
+        
+        # Possessive
+        
+        # Tense/Aspect
+        "Pres": "Geniş Zaman",
+        "Narr": "Duyulan Geçmiş Zaman (-mış/-miş)",  # Enhanced
+        
+        # Mood
+        "Coh": "İstek Kipi (Şartlı)",
+        
+        # Voice
+        "Reflex": "Dönüşlü Çatı (-n)",
+        "Recip": "İşteş Çatı (-ış/-iş)",
+        "Coop": "İşbirliği Çatı (-laş/-leş)",
+        
+        # Verbals
+        "Inf": "İsim-Fiil (-mak/-mek)",
+        "Part": "Sıfat-Fiil (-an/-en/-dık/-dik)",
+        "Ger": "Zarf-Fiil (-ip/-erek/-ken)",
+        
+        # Derivational
+        "Dim": "Küçültme Eki (-cık/-cik)",
+        "Prof": "Meslek Eki (-cı/-ci)",
+        "With": "Birliktelik Eki (-lı/-li)",
+        "PastPart": "Geçmiş Zaman Ortacı (-dık/-dik)",
+        "FutPart": "Gelecek Zaman Ortacı (-acak/-ecek)",
+        
+        # Rare/Technical
+        "Able": "Yeterlilik Kipi (-ebil/-abil)",
+        "Almost": "Yaklaşma Eki (-eyaz-)",
+        "JustLike": "Benzetme Eki (-gil)",
+        "Start": "Başlama Eki (-a/-e)",
+        "Stay": "Kalma Eki (-a/-e)",
+        "Repeat": "Tekrar Eki (-a/-e)",
+        
+        # Compound
+        "Comp": "Birleşik Sözcük",
+        "Acquire": "Kazanma Eki (-lan/-len)",
+        "Become": "Olma Eki (-laş/-leş)",
+        
+        # Special
+        "Card": "Asıl Sayı",
+        "Dist": "Üleştirme (-ar/-er)",
+        "Ord": "Sıra Sayı (-ıncı/-inci)",
+        "Range": "Aralık (-ar/-er)",
+        "Ratio": "Oran (-ca/-ce)",
+        "Real": "Gerçeklik Eki (-dir)"
     }
 
-    suffix_part = result_str.split("]")[1][1:]
+    suffix_part = current_result_str.split("]")[1][1:] if "]" in current_result_str else ""
     suffixes = "".join(suffix_part)
     concurrent_word = ""
     for index, i in enumerate(suffixes):
@@ -351,7 +412,6 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
             continue
         if concurrent_word in suffix_translation:
             suffix_kinds.append(concurrent_word)
-            
     translated_suffix_kinds = [suffix_translation[i] for i in suffix_kinds]
     answer.append(translated_suffix_kinds)
     get_letter = False
@@ -372,8 +432,6 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
             get_letter = True
     answer.append(concurrent_word)
     return answer
-    
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  
