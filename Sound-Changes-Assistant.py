@@ -31,38 +31,45 @@ def suggest():
 @app.route('/process', methods=['POST'])
 def process():
     global detected_sound_changes  
+    
+    detected_sound_changes.clear()
+    
     user_input = request.form.get('user_input')
-    all_results = analyze_word(user_input)
-    display_results = []
-    for result in all_results:
-        detected_sound_changes.clear()
-        display_results.append({
-            "root": result["root"],
-            "normalized_root": result["normalized_root"],
-            "suffixes": result["suffixes"],
-            "analysis": result["raw_analysis"],
-            "sound_events": detect_ses_olaylari(result),
-            "suffix_kinds": result["find_suffix_kinds"][0],
-            "suffix_display": result["find_suffix_kinds"][1][::-1]
-        })
-    return jsonify(results=display_results if display_results else "No results found")
+    results = analyze_word(user_input)
+
+    display_results = [
+      {
+          "root": result["root"],
+          "normalized_root": result["normalized_root"],
+          "suffixes": result["suffixes"],
+          "analysis": str(result["analysis"]),
+          "sound_events": detect_ses_olaylari(result),
+          "suffix_kinds": result["find_suffix_kinds"][0],
+          "suffix_display": result["find_suffix_kinds"][1][::-1]
+      }
+      for result in results
+    ]
+    
+    return jsonify(result=display_results if display_results else "No result found")
+
 
 def analyze_word(word):
     analysis = morphology.analyze(word)
     results = []
+
     if analysis.analysis_results:
-        for result in analysis.analysis_results:
-            root = result.get_stem()
-            suffixes = result.get_ending()
-            normalized_root = str(result).split(":")[0][1:]
-            results.append({
-                'root': root,
-                'normalized_root': normalized_root,
-                'suffixes': suffixes,
-                "analysis": analysis,
-                "find_suffix_kinds": find_suffix_kinds(root, normalized_root, suffixes, word, result),
-                "raw_analysis": str(result)
-            })
+        first_result = analysis.analysis_results[0]
+        root = first_result.get_stem()
+        suffixes = first_result.get_ending()
+        normalized_root = str(first_result).split(":")[0][1:]
+
+        results.append({
+            'root': root,
+            'normalized_root': normalized_root,
+            'suffixes': suffixes,
+            "analysis": analysis,
+            "find_suffix_kinds": find_suffix_kinds(root,normalized_root,suffixes,word, analysis)
+        })
     return results
 
 def get_suggestions(query):
@@ -286,8 +293,9 @@ def is_actual_word(word):
 
 def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis_results):
     suffix_kinds = []
+    result_str = str(analysis_results.analysis_results[0])
     answer = []
-    current_result_str = str(analysis_results)
+    
     suffix_translation = {
         # === Your Original Entries (Preserved) ===
         "Verb": "Fiil",
@@ -308,7 +316,6 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
         "A2pl": "İkinci Çoğul Kişi (Siz)",
         "Opt": "İstek Kip Eki",
         "Aor": "Geniş Zaman Eki",
-        "Narr": "Öğrenilen Geçmiş Zaman Eki",
         "Pass": "Edilgen Eki",
         "Neces": "Gereklilik Eki",
         "Imp": "Emir Kipi Eki",
@@ -377,7 +384,6 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
         "Dim": "Küçültme Eki (-cık/-cik)",
         "Prof": "Meslek Eki (-cı/-ci)",
         "With": "Birliktelik Eki (-lı/-li)",
-        "PastPart": "Geçmiş Zaman Ortacı (-dık/-dik)",
         "FutPart": "Gelecek Zaman Ortacı (-acak/-ecek)",
         
         # Rare/Technical
@@ -401,8 +407,10 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
         "Ratio": "Oran (-ca/-ce)",
         "Real": "Gerçeklik Eki (-dir)"
     }
+    
+    
 
-    suffix_part = current_result_str.split("]")[1][1:] if "]" in current_result_str else ""
+    suffix_part = result_str.split("]")[1][1:]
     suffixes = "".join(suffix_part)
     concurrent_word = ""
     for index, i in enumerate(suffixes):
@@ -412,8 +420,12 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
             continue
         if concurrent_word in suffix_translation:
             suffix_kinds.append(concurrent_word)
+            
     translated_suffix_kinds = [suffix_translation[i] for i in suffix_kinds]
     answer.append(translated_suffix_kinds)
+    
+    
+    
     get_letter = False
     concurrent_word = ""
     display_word = ""
@@ -432,6 +444,8 @@ def find_suffix_kinds(root, suffixed_word, normalized_root, input_word, analysis
             get_letter = True
     answer.append(concurrent_word)
     return answer
+    
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  
